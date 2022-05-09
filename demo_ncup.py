@@ -76,9 +76,13 @@ def sort_humanly(v_list):
 def load_image(imfile):
     # img = np.array(Image.open(imfile)).astype(np.uint8)
     img = cv2.imread(imfile)
-    img = cv2.resize(img,(768,1024))
-    img_rot90 = np.ascontiguousarray(np.rot90(img))
-    img = torch.FloatTensor(img_rot90).permute(2, 0, 1)
+    h,w = img.shape[:2]
+    # img = cv2.resize(img,(768,1024))
+    if h/w <1:
+        img = np.ascontiguousarray(img)
+    else:
+        img = np.ascontiguousarray(np.rot90(img))
+    img = torch.FloatTensor(img).permute(2, 0, 1)
     return img
 
 
@@ -95,16 +99,16 @@ def load_image_list(image_files):
 
 
 def viz(img, flo):
-    img = img[0].permute(1, 2, 0).cpu().numpy()
+    # img = img[0].permute(1, 2, 0).cpu().numpy()
     flo = flo[0].permute(1, 2, 0).cpu().numpy()
 
     flo_norm = np.array(np.sqrt(np.power(flo[..., 0], 2) + np.power(flo[..., 1], 2))).astype(np.uint8)
     ret, flo_norm = cv2.threshold(flo_norm, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)  # 大津阈值
     # print(np.max(flo_norm),np.min(flo_norm))
-    threshhold = 2
+    # threshhold = 2
     # flo_norm = np.array(flo_norm > threshhold, dtype=int) * 255
-    flo_norm_rgb = np.stack([flo_norm for _ in range(3)], axis=-1)
-    return flo_norm_rgb
+    # flo_norm_rgb = np.stack([flo_norm for _ in range(3)], axis=-1)
+    return flo_norm
 
     # map flow to rgb image
     flo = flow_viz.flow_to_image(flo)
@@ -131,36 +135,48 @@ def demo_ncup(args):
     # ipdb.set_trace()
     # print(torch.cuda.is_available)
     # model.load_state_dict(torch.load(args.restore_ckpt, map_location=map_location))
-    output_folder = 'output_iter10_tracing100'
-    if not os.path.exists(output_folder):
-        os.makedirs(output_folder)
+    # for root , path ,file in os.walk(args.datapath):
+
 
     model = model.module
     model.to(device)
     model.eval()
-    images_name = glob.glob(os.path.join(args.datapath, '*.png')) + \
-                  glob.glob(os.path.join(args.datapath, '*.jpg'))
-    images_name = sort_humanly(images_name)
-    images = load_image_list(images_name)
 
-    with torch.no_grad():
-        # ipdb.set_trace()
+    dirs = os.listdir(args.datapath)
+    for dir in dirs:
+        output_folder = os.path.join('output',dir)
 
 
-        for i, name in tqdm.tqdm(zip ( range(images.shape[0] - 1),images_name[1:]),total=len(images_name)-1):
-            image1 = images[i, None]
-            image2 = images[i + 1, None]
-            name = 'mask_' + name.split('\\')[-1]
+        if not os.path.exists(output_folder):
+            os.makedirs(output_folder)
+        else:
+            print(output_folder, 'is exist')
+            continue
+        input_folder = os.path.join(args.datapath,dir)
+        images_name = glob.glob(os.path.join(input_folder, '*.png')) + \
+                      glob.glob(os.path.join(input_folder, '*.jpg'))
+        images_name = sort_humanly(images_name)
+        images = load_image_list(images_name)
+        print(input_folder)
+        with torch.no_grad():
+            # ipdb.set_trace()
 
-            save_name = os.path.join(output_folder, name)
 
-            flow_low, flow_up = model(image1, image2, iters=10, test_mode=True)
+            for i, name in tqdm.tqdm(zip ( range(images.shape[0] - 1),images_name[1:]),total=len(images_name)-1):
+                image1 = images[i, None]
+                image2 = images[i + 1, None]
+                name = 'mask_' + name.split('\\')[-1]
 
-            mask = viz(image1, flow_up)
-            cv2.imwrite(save_name, mask)
-            del image1
-            del image2
-            del mask
+                save_name = os.path.join(output_folder, name)
+
+                flow_low, flow_up = model(image1, image2, iters=10, test_mode=True)
+
+                mask = viz(image1, flow_up)
+                cv2.imwrite(save_name, mask)
+                del image1
+                del image2
+                del mask
+        del images
 
 if __name__ == '__main__':
 
@@ -183,7 +199,8 @@ if __name__ == '__main__':
             args[k]=int_list
 
     args= dictToObj(args)
-    print(args)
+
+    demo_ncup(args)
 
     # print(args.final_upsampling)
     # input()
@@ -254,4 +271,3 @@ if __name__ == '__main__':
     # args = parser.parse_args()
 
 
-    demo_ncup(args)

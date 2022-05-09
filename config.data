@@ -1,6 +1,6 @@
 model=raft_nc_dbl
 restore_ckpt=models/raft_nc-sintel.pth
-datapath=tracing100
+datapath=..\tracing\output
 dataset=sintel
 small=False
 mixed_precision=False
