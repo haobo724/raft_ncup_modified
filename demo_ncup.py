@@ -157,7 +157,7 @@ def demo_ncup(args):
                       glob.glob(os.path.join(input_folder, '*.jpg'))
         images_name = sort_humanly(images_name)
         images = load_image_list(images_name)
-        print(input_folder)
+
         with torch.no_grad():
             # ipdb.set_trace()
 
@@ -165,8 +165,7 @@ def demo_ncup(args):
             for i, name in tqdm.tqdm(zip ( range(images.shape[0] - 1),images_name[1:]),total=len(images_name)-1):
                 image1 = images[i, None]
                 image2 = images[i + 1, None]
-                name = 'mask_' + name.split('\\')[-1]
-
+                name = 'mask_' + os.path.split(name)[-1]
                 save_name = os.path.join(output_folder, name)
 
                 flow_low, flow_up = model(image1, image2, iters=10, test_mode=True)
