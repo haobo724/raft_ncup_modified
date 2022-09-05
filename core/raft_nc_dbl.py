@@ -141,10 +141,11 @@ class RAFT(nn.Module):
         # run the feature network
         with autocast(enabled=self.args.mixed_precision):
             fmap1, fmap2 = self.fnet([image1, image2])        
-        
+        print(fmap1.size())
+        print(fmap2.size())
+
         fmap1 = fmap1.float()
         fmap2 = fmap2.float()
-        corr_fn = CorrBlock(fmap1, fmap2, radius=self.args.corr_radius)
 
         # run the context network
         with autocast(enabled=self.args.mixed_precision):
@@ -154,6 +155,11 @@ class RAFT(nn.Module):
             inp = torch.relu(inp)
 
         coords0, coords1 = self.initialize_flow(image1)
+        print('coords0',coords0.size())
+        print('coords1',coords1.size())
+        print('net',net.size())
+        print('inp',inp.size())
+        corr_fn = CorrBlock(fmap1, fmap2, radius=self.args.corr_radius)
 
         if flow_init is not None:
             coords1 = coords1 + flow_init
@@ -161,18 +167,17 @@ class RAFT(nn.Module):
         flow_predictions = []
         for itr in range(iters):
             coords1 = coords1.detach()
-            corr = corr_fn(coords1) # index correlation volume
-
+            corr = corr_fn(coords1) # index correlation volume ,四层，所以是81*4 324
             flow = coords1 - coords0
             with autocast(enabled=self.args.mixed_precision):
                 net, up_mask, delta_flow = self.update_block(net, inp, corr, flow)
-
             # F(t+1) = F(t) + \Delta(t)
             coords1 = coords1 + delta_flow
-
+            flow = coords1 - coords0
             # upsample predictions
-            #if itr == iters-1:
-            flow_up = 8 * self.upsample_flow(coords1 - coords0, self.update_block.net)
+            flow_up = 8 * self.upsample_flow(flow, self.update_block.net)
+
+
             #else:
             #    flow_up = upflow8(coords1 - coords0, align_corners=self.args.align_corners)
 

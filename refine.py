@@ -66,9 +66,10 @@ def init(path,mask_path,save_root):
     # GrabCut and bitwise masking
     # cv2.imshow("Input", image)
     # cv2.imshow("GrabCut Mask", outputMask)
-    cv2.imshow("GrabCut Output", output)
-    cv2.imshow("Rough Output", roughOutput)
-    cv2.waitKey(1)
+    result = np.hstack([image,output])
+    cv2.imshow("GrabCut Output", result)
+    # cv2.imshow("Rough Output", roughOutput)
+    cv2.waitKey()
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     # path, mask_path=r'./data/img/00001.jpg',r'./data/mask/00001.jpg'

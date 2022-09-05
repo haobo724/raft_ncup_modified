@@ -80,6 +80,7 @@ class BasicMotionEncoder(nn.Module):
     def __init__(self, args):
         super(BasicMotionEncoder, self).__init__()
         cor_planes = args.corr_levels * (2*args.corr_radius + 1)**2
+        print('cor_planes:',cor_planes)#324
         self.convc1 = nn.Conv2d(cor_planes, 256, 1, padding=0)
         self.convc2 = nn.Conv2d(256, 192, 3, padding=1)
         self.convf1 = nn.Conv2d(2, 128, 7, padding=3)
@@ -129,11 +130,16 @@ class BasicUpdateBlock(nn.Module):
 
     def forward(self, net, inp, corr, flow, upsample=True):
         motion_features = self.encoder(flow, corr)
+        print('motion_features after encoder',motion_features.size()) #我猜测dim为126
+
         inp = torch.cat([inp, motion_features], dim=1)
+        print('inp after cat',inp.size())
 
         net = self.gru(net, inp)
         self.net = net
+        print('net after gru',net.size())
         delta_flow = self.flow_head(net)
+        print('delta_flow after gru',delta_flow.size())
 
         # scale mask to balence gradients
         #if self.args.model != 'raft_nc':

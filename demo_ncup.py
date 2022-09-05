@@ -99,22 +99,32 @@ def load_image_list(image_files):
 
 
 def viz(img, flo):
-    # img = img[0].permute(1, 2, 0).cpu().numpy()
+    img = img[0].permute(1, 2, 0).cpu().numpy()
     flo = flo[0].permute(1, 2, 0).cpu().numpy()
 
     flo_norm = np.array(np.sqrt(np.power(flo[..., 0], 2) + np.power(flo[..., 1], 2))).astype(np.uint8)
-    ret, flo_norm = cv2.threshold(flo_norm, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)  # 大津阈值
+
+
+    ret, flo_binary = cv2.threshold(flo_norm, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)  # 大津阈值
+    flo_norm =np.stack([flo_norm for _ in range(3)], axis=-1)
+
+    img_flo = np.hstack([img, flo_norm])
+    cv2.imshow('image', img_flo / 255.0)
+    cv2.waitKey()
+    flo_binary2 =np.stack([flo_binary for _ in range(3)], axis=-1)
+
+    img_flo2 = np.hstack([img, flo_binary2])
+    cv2.imshow('img_flo2', img_flo2 / 255.0)
+    cv2.waitKey()
     # print(np.max(flo_norm),np.min(flo_norm))
     # threshhold = 2
     # flo_norm = np.array(flo_norm > threshhold, dtype=int) * 255
     # flo_norm_rgb = np.stack([flo_norm for _ in range(3)], axis=-1)
-    return flo_norm
+    return flo_binary
 
     # map flow to rgb image
     flo = flow_viz.flow_to_image(flo)
-    img_flo = np.concatenate([img, flo_norm_rgb], axis=0)
-    # cv2.imshow('image', img_flo[:, :, [2, 1, 0]] / 255.0)
-    # cv2.waitKey(1)
+
 
 
 def demo_ncup(args):
@@ -147,11 +157,11 @@ def demo_ncup(args):
         output_folder = os.path.join('output',dir)
 
 
-        if not os.path.exists(output_folder):
-            os.makedirs(output_folder)
-        else:
-            print(output_folder, 'is exist')
-            continue
+        # if not os.path.exists(output_folder):
+        #     os.makedirs(output_folder)
+        # else:
+        #     print(output_folder, 'is exist')
+        #     continue
         input_folder = os.path.join(args.datapath,dir)
         images_name = glob.glob(os.path.join(input_folder, '*.png')) + \
                       glob.glob(os.path.join(input_folder, '*.jpg'))
